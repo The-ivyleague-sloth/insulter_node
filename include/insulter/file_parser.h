@@ -8,8 +8,8 @@
 #include <string>
 #include <string.h>
 #include <map>
-#include "ros/ros.h"
-#include "std_msgs/String.h"
+// #include "ros/ros.h"
+// #include "std_msgs/String.h"
 #include <sstream>
 
 void initialize_map();

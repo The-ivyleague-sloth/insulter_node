@@ -7,16 +7,18 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include <sstream>
-#include "file_parser.h"
+#include "insulter/file_parser.h"
+#include "insulter/word_node.h"
 
 
-void make_word_node(std::string word_bytes){
+void make_word_node(std::string word_bytes,word_node* head){
 
   int start_pos;
   int end_pos;
   std::string token = "/";
   std::string ws = " ";
   std::string character;
+  char val;
 //  start_pos = word_bytes.find(token);
 //  end_pos = word_bytes.find(" ",1);
 
@@ -34,6 +36,8 @@ void make_word_node(std::string word_bytes){
          character.erase(start_pos,start_pos+ws.length());
        }
 		   std::cout << character << std::endl;
+       val = get_char(character);
+       
     }
 // std::cout << std::endl;
 
@@ -57,7 +61,8 @@ void initialize_insults(){
           if(pos != std::string::npos){
           // now \SE \KE \OHIH \FAST \IH
             file_info.erase(0,pos+1);
-            make_word_node(file_info);
+            word_node* head = (word_node*)malloc(sizeof(word_node))
+            make_word_node(file_info,head);
           }
 
 
