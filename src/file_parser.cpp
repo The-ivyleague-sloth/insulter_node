@@ -1,31 +1,232 @@
 #include "insulter/file_parser.h"
 
-std::map<std::string, int> das_map;
-// void initialize_insults(){
-//
-//   std::ifstream config_file;
-//   std::string file_info;
-//   std::string file = "~/BullyBot/catkin_ws/src/insulter/src/PhraseALator.Dic";
-//   // open the file as input only
-// 	config_file.open(file.c_str(), std::ios::in);// | std::ios:: binary);// | ios::ate);
-// 			if(config_file.is_open()){
-//         // read line by line
-//         while(getline(config_file,file_info)){
-// 					std::cout << file_info << std::endl;
-//         }
-// 			}
-//       else{
-//         printf("error opening file\n");
-//       }
-// }
-get_char(std::string key)
+
+https://learn.sparkfun.com/tutorials/raspberry-gpio/c-wiringpi-setup
+uint8_t check_pin(int8_t pin)
+{
+    if (digitalRead(pin)) // sensor tripped
+    {
+ 		return 1;
+    }
+    else
+    	return 0;
+}
+
+
+void insulter::sleep_ms(int milliseconds) // cross-platform sleep function
+{
+// #elif _POSIX_C_SOURCE >= 199309L
+    struct timespec ts;
+    ts.tv_sec = milliseconds / 1000;
+    ts.tv_nsec = (milliseconds % 1000) * 1000000;
+    nanosleep(&ts, NULL);
+// #else
+    // usleep(milliseconds * 1000);
+// #endif
+}
+
+
+int insulter::speak_word(word_node* head)
+{
+
+	word_node* temp = head;
+
+	while(temp != NULL){
+		//send_uart(temp->byte);
+		// write a byte to uart lines.
+		write(uart_fd,&temp->byte,1);
+		temp = temp->next;
+		sleep_ms(200);
+	}
+
+
+}
+
+int insulter::say_sentence()
+{
+	//get random number based off of size
+	// int ind = rand() % INSULTS;
+	std::string pos;
+	// std::string end_pos;
+	std::String space = " ";
+	std::string word;
+
+	std::string insult;
+	// get a random insult from our insult table
+	insult = insults[1];
+
+	// string should be like 'you suck'
+    while ((pos = insult.find(space)) != std::string::npos)
+	{
+    // end_pos = line.find(space,1);
+    //get our character string to look up in the map
+    word = insult.substr(0,pos);
+	// get rid of the character to iterate
+	insult.erase(0,pos+space.length());
+
+	std::cout << "word: " << word << std::endl;
+    // look up in map and get the value
+    word_node* head = word_map[word];
+    // send the head of the list to iterate through and output hte bytes
+    speak_word(head);
+    }
+
+
+}
+
+// create a new word node if head is null add to front else iterate through and add to tail
+int insulter::create_new_word_node(std::string word,char val){
+	word_node* head;
+	// get the head of our linked list
+	head = word_map[word];
+
+	word_node* new_word_node = (word_node*) malloc (sizeof(word_node));
+    if(new_word_node == NULL){ // == -1
+        /* return -1 if malloc fails */
+        perror("error, malloc for new word node node struct failed");
+        return -1;
+    } 
+
+    // set unique values
+    new_word_node->byte = val;
+
+    if((head) == NULL)
+    {
+        /* if head == NULL, node created is the new head of the list! */
+        head = new_word_node;
+    } 
+    else 
+    {
+        /* otherwise, traverse linked list until we reach the end */
+        head* current = head;
+
+        while(current->next != NULL)
+        {
+            current = current->next;
+        }
+        /* add node to the end of list */
+        current->next = new_word_node;
+    }
+    return 0;
+}
+
+// take in a line from the file parse command by command and form our linked list
+void insulter::make_word_node(std::string line,std::string word){
+
+  int start_pos;
+  int end_pos;
+  std::string token = "/";
+  std::string ws = " ";
+  std::string character;
+  char val;
+
+  // string should be here \SE\KE\OHIH\FAST\IH find the first \ and last \ and gather
+    while ((start_pos = line.find(token)) != std::string::npos)
+	{
+    end_pos = line.find(token,1);
+    //get our character string to look up in the map
+    character = line.substr(start_pos+token.length(),end_pos);
+	// get rid of the character to iterate
+	line.erase(start_pos,end_pos);
+
+	std::cout << character << std::endl;
+    // look up in map and get the value
+    val = get_char(character);
+    // create a new node in the linkedlist
+    create_new_word_node(word,val);
+    }
+
+}
+
+//read in a dictionary file parse it and create a linked list of bytes to send over uart
+void insulter::initialize_insults()
+{
+
+  int pos;
+  std::ifstream config_file;
+  std::string file_line;
+  std::string file = "/home/ivyleaguesloth/BullyBot/catkin_ws/src/insulter/src/PhraseALator.Dic";
+  std::string word;
+  	// open the file as input only
+	config_file.open(file.c_str(), std::ios::in);
+		// check if open
+		if(config_file.is_open())
+		{
+        	// read line by line
+        	while(getline(config_file,file_line))
+        	{
+			//typical line looks like sky = \SE \KE \OHIH \FAST \IH
+        	// remove all the white spaces from the line of the file
+        	file_line.erase(remove_if(file_line.begin(), file_line.end(), isspace), file_line.end());
+          	pos = file_info.find("=");
+          	std::cout << "after removing spaces " << file_line << endl;
+          	// line should look like this now 'sky=\SE\KE\OHIH\FAST\IH' extract the word
+          		if(pos != std::string::npos)
+          		{
+         		//extract the word like 'sky'
+          		word = file_line.substr(0,pos);
+          		// after erasing \SE\KE\OHIH\FAST\IH
+            	file_info.erase(0,pos+1);
+            	// create a null head
+            	word_node* head = NULL; 
+            	// store the head of our pointer in a map
+            	word_map[word] = head;
+            	make_word_node(file_info,word);
+          		}
+          		else
+          		{
+          			printf("line formatted incorrectly\n");
+          		}
+       		}
+		}
+      	else
+      	{
+        printf("error opening file\n");
+     	}
+}
+
+int8_t insulter::get_char(std::string key)
 {
   return das_map[key];
 }
 
-void initialize_map()
+/*
+* read from the sentence file and store the lines in the inult array
+*/
+void insulter::initialize_sentences()
 {
- // das_map["FAST"] = FAST;
+
+  	uint8_t i;
+  	std::ifstream config_file;
+ 	std::string file_line;
+  	std::string file = "/home/ivyleaguesloth/BullyBot/catkin_ws/src/insulter/src/Sentences.txt";
+ 	std::string word;
+  	// open the file as input only
+	config_file.open(file.c_str(), std::ios::in);
+		// check if open
+		if(config_file.is_open())
+		{
+		 	// read line by line
+        	while(getline(config_file,file_line))
+        	{
+        		insults[i] = file_line;
+        		i++;
+        	}
+		}
+      	else
+      	{
+        printf("error opening sentence.txt file\n");
+     	}
+}
+
+
+/* 
+* this map converts a string to a char value to send over UART 
+* each string is a known voice or command provided by the speakjet data sheet
+* https://www.sparkfun.com/datasheets/Components/General/speakjet-usermanual.pdf
+*/
+void insulter::initialize_insulter_map()
+{
     das_map["IY"]    = 128;                   ///< 70ms Voiced Long Vowel
 	das_map["IH"]    = 129;                   ///< 70ms Voiced Long Vowel
     das_map["EY"]    = 130;                   ///< 70ms Voiced Long Vowel
@@ -182,5 +383,30 @@ void initialize_map()
 	das_map["GOTOPHRASE"]    = 29;                    ///< Next octet is EEPROM phgrase to go to. See manual.
 	das_map["DEKAY"]         = 30;                    ///< Next octet is delay in multiples of 10ms. 0 to 255.
 	das_map["RESET"] = 31; ///< Reset Volume Speed, Pitch, Bend to defaults.
+
+}
+
+
+void insulter::initialize_serial(){
+
+	int uart_fd = open("/dev/serial0", O_RDWR | O_NOCTTY ); 
+	if (uart_fd == -1){
+  		printf ("Error no is : %d\n", errno);
+  		printf("Error description is : %s\n",strerror(errno));
+  		return(-1);
+	}
+
+	// set serial fd to 8n1 9600 
+	struct termios options;
+	tcgetattr(sfd, &options);
+	cfsetspeed(&options, B9600);
+	
+	options.c_cflag &= ~CSTOPB;
+	options.c_cflag |= CLOCAL;
+	options.c_cflag |= CREAD;
+	
+	cfmakeraw(&options);
+	tcsetattr(sfd, TCSANOW, &options);
+
 
 }

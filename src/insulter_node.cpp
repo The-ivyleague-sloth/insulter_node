@@ -9,69 +9,9 @@
 #include <sstream>
 #include "insulter/file_parser.h"
 #include "insulter/word_node.h"
+#include <wiringPi.h> // Include WiringPi library!
 
-
-void make_word_node(std::string word_bytes,word_node* head){
-
-  int start_pos;
-  int end_pos;
-  std::string token = "/";
-  std::string ws = " ";
-  std::string character;
-  char val;
-//  start_pos = word_bytes.find(token);
-//  end_pos = word_bytes.find(" ",1);
-
-  //std::cout << word_bytes << std::endl;
-  //std::cout << "start_pos" << start_pos << std::endl;
-  //std::cout << "end_pos" << end_pos << std::endl;
-  // character = word_bytes.substr(start_pos+1,end_pos-1);
-  // std::cout << character << std::endl;
-  while ((start_pos = word_bytes.find(token)) != std::string::npos)
-		{
-       end_pos = word_bytes.find(ws,1);
-       character = word_bytes.substr(start_pos+1,end_pos);
-		   word_bytes.erase(start_pos,end_pos);
-       if((start_pos = character.find(ws)) != std::string::npos){
-         character.erase(start_pos,start_pos+ws.length());
-       }
-		   std::cout << character << std::endl;
-       val = get_char(character);
-       
-    }
-// std::cout << std::endl;
-
-
-}
-
-void initialize_insults(){
-
-  int pos;
-  std::ifstream config_file;
-  std::string file_info;
-  std::string file = "/home/ivyleaguesloth/BullyBot/catkin_ws/src/insulter/src/PhraseALator.Dic";
-  // open the file as input only
-	config_file.open(file.c_str(), std::ios::in);// | std::ios:: binary);// | ios::ate);
-			if(config_file.is_open()){
-        // read line by line
-        while(getline(config_file,file_info)){
-					// std::cout << file_info << std::endl;
-          //typical line looks like sky = \SE \KE \OHIH \FAST \IH
-          pos = file_info.find("=");
-          if(pos != std::string::npos){
-          // now \SE \KE \OHIH \FAST \IH
-            file_info.erase(0,pos+1);
-            word_node* head = (word_node*)malloc(sizeof(word_node))
-            make_word_node(file_info,head);
-          }
-
-
-        }
-			}
-      else{
-        printf("error opening file\n");
-      }
-}
+#define MONITOR_PIN 7
 
 /**
 * This tutorial demonstrates simple sending of messages over the ROS system.
@@ -123,7 +63,12 @@ int main(int argc, char **argv)
 * a unique string for each message.
 */
 	int count = 0;
- 	while (ros::ok())
+  wiringPiSetupGpio(); // Initialize wiringPi -- using Broadcom pin numbers
+ 	
+  pinMode(MONITOR_PIN, Input);
+  // pullupDnControl(MONITOR_PIN, PUD)
+
+  while (ros::ok())
   {
 /**
 * This is a message object. You stuff it with data, and then publish it.
