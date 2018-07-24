@@ -18,7 +18,40 @@
 insulter::insulter(){}
 
 //empty destructor
-insulter::~insulter(){}
+insulter::~insulter(){
+	std::cout << "entering destructor: " << std::endl;
+	std::map<std::string, word_node*>::iterator it;
+
+	word_node* head = NULL;
+	for (it=word_map.begin(); it!=word_map.end(); ++it)
+	{
+		std::cout << "freeing: " << it->first << std::endl;
+		free_word(it->second);
+	}
+
+}
+
+void insulter::free_word(word_node* head)
+{
+	word_node* temp;
+
+	if(head == NULL)
+	{
+		std::cout << "nothing to free " << std::endl;
+		assert(head == NULL);
+	} 
+
+	temp = head;
+
+	while(head != NULL)
+	{
+		head = head->next;
+		free(temp);
+		temp = head;
+	}
+
+}
+
 
 void insulter::sleep_ms(int milliseconds) // cross-platform sleep function
 {

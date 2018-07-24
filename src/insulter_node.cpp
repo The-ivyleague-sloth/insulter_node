@@ -8,10 +8,20 @@
 #include "std_msgs/String.h"
 #include <sstream>
 #include "insulter/insulter_node.h"
+#include <signal.h>
 // #include "insulter/word_node.h"
 //#include <wiringPi.h> // Include WiringPi library!
 
 #define MONITOR_PIN 7
+
+  insulter bully_bot;
+
+void my_handler(int signo){
+  std::cout << "entering handler: " << std::endl;
+  bully_bot.~insulter();
+  exit(0);
+}
+
 
 /**
 * This tutorial demonstrates simple sending of messages over the ROS system.
@@ -29,12 +39,13 @@ int main(int argc, char **argv)
   * part of the ROS system.
   */
   std::cout << "yo " << std::endl;
-  insulter bully_bot;
+  // insulter bully_bot;
 
   bully_bot.initialize_insulter_map();
   bully_bot.initialize_insults();
   bully_bot.initialize_sentences();
   bully_bot.say_sentence();
+  signal(SIGINT, my_handler);
 
   ros::init(argc, argv, "insulter");
   /**

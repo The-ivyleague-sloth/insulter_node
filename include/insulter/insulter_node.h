@@ -39,6 +39,7 @@ public:
 	int16_t send_uart();
 	void sleep_ms(int milliseconds);
 	void initialize_serial();
+	void free_word(word_node* word);
 
 
 private:
