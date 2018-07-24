@@ -1,18 +1,24 @@
-#include "insulter/file_parser.h"
+#include "insulter/insulter_node.h"
+#include <assert.h>
 
 #define DEBUG
 
 //https://learn.sparkfun.com/tutorials/raspberry-gpio/c-wiringpi-setup
-uint8_t check_pin(int8_t pin)
-{
-	if (digitalRead(pin)) // sensor tripped
-	{
-		return 1;
-	}
-	else
-		return 0;
-}
+// uint8_t check_pin(int8_t pin)
+// {
+// 	if (digitalRead(pin)) // sensor tripped
+// 	{
+// 		return 1;
+// 	}
+// 	else
+// 		return 0;
+// }
 
+//empty constructor
+insulter::insulter(){}
+
+//empty destructor
+insulter::~insulter(){}
 
 void insulter::sleep_ms(int milliseconds) // cross-platform sleep function
 {
@@ -29,14 +35,16 @@ void insulter::sleep_ms(int milliseconds) // cross-platform sleep function
 /*
 * iterates through the linked list of bytes and transmits commands via uart to the speakjet
 */
-int insulter::speak_word(word_node* head)
+int16_t insulter::speak_word(word_node* head)
 {
 
 	word_node* temp = head;
-
 	while (temp != NULL) {
 		// write a byte to uart lines.
-		write(uart_fd, &temp->byte, 1);
+		//write(uart_fd, &temp->byte, 1);
+#ifdef DEBUG
+		printf("processing through UART %d\n",temp->byte);
+#endif
 		temp = temp->next;
 		sleep_ms(200);
 		//check gpio pin
@@ -48,18 +56,22 @@ int insulter::speak_word(word_node* head)
 /*
 * gets a string sentence and breaks the sentence down into words to enunciate
 */
-int insulter::say_sentence()
+int16_t insulter::say_sentence()
 {
 	//get random number based off of size
 	// int ind = rand() % INSULTS;
-	std::string pos;
+	int pos;
 	// std::string end_pos;
-	std::String space = " ";
+	std::string space = " ";
 	std::string word;
+	word_node* head = NULL;
 
 	std::string insult;
 	// get a random insult from our insult table
 	insult = insults[1];
+#ifdef DEBUG
+		std::cout << "insult generated: " << insult << std::endl;
+#endif
 
 	// string should be like 'you suck' so we parse by space
 	while ((pos = insult.find(space)) != std::string::npos)
@@ -74,11 +86,18 @@ int insulter::say_sentence()
 		std::cout << "word about to speak: " << word << std::endl;
 #endif
 		// look up in map and get the value
-		word_node* head = word_map[word];
+		head = word_map[word];
 		// send the head of the list to iterate through and output hte bytes
 		speak_word(head);
 	}
-
+	// after parsing we still need to say the last word
+#ifdef DEBUG
+		std::cout << "last word about to speak: " << insult << std::endl;
+#endif
+		// look up in map and get the value
+		head = word_map[insult];
+		// send the head of the list to iterate through and output hte bytes
+		speak_word(head);
 
 }
 
@@ -97,16 +116,19 @@ int16_t insulter::create_new_word_node(std::string word, int8_t val) {
 
 	// set unique values
 	new_word_node->byte = val;
+	new_word_node->next = NULL;
 
 	if ((head) == NULL)
 	{
 		/* if head == NULL, node created is the new head of the list! */
-		head = new_word_node;
+		//head = new_word_node;
+		word_map[word] = new_word_node;
 	}
 	else
 	{
 		/* otherwise, traverse linked list until we reach the end */
-		head* current = head;
+		word_node* current = head;
+
 
 		while (current->next != NULL)
 		{
@@ -126,22 +148,29 @@ void insulter::make_word_node(std::string line, std::string word) {
 	std::string token = "/";
 	std::string ws = " ";
 	std::string character;
-	int8_t val;
+	uint8_t val;
 
 	// string should be here \SE\KE\OHIH\FAST\IH find the first \ and last \ and gather
 	while ((start_pos = line.find(token)) != std::string::npos)
 	{
 		end_pos = line.find(token, 1);
 		//get our character string to look up in the map
-		character = line.substr(start_pos + token.length(), end_pos);
+		character = line.substr(start_pos + token.length(), end_pos - token.length());
 		// get rid of the character to iterate
 		line.erase(start_pos, end_pos);
 
-#ifdef DEBUG
-		std::cout << "character string parsed:" character << std::endl;
+#ifdef DEBUG 
+		std::cout << "character string parsed:" << character << std::endl;
 #endif
+		// convert to upper case if not already
+		std::transform(character.begin(), character.end(),character.begin(), ::toupper);
 		// look up in map and get the value
 		val = get_char(character);
+
+#ifdef DEBUG 
+		// using cout causes for wrong output on terminal
+		printf("byte from map:%d\n",val);
+#endif
 		// create a new node in the linkedlist
 		create_new_word_node(word, val);
 	}
@@ -157,6 +186,7 @@ void insulter::initialize_insults()
 	std::string file_line;
 	std::string file = "/home/ivyleaguesloth/BullyBot/catkin_ws/src/insulter/src/PhraseALator.Dic";
 	std::string word;
+	std::string word_delim = "=";
 	// open the file as input only
 	config_file.open(file.c_str(), std::ios::in);
 	// check if open
@@ -168,10 +198,10 @@ void insulter::initialize_insults()
 			//typical line looks like sky = \SE \KE \OHIH \FAST \IH
 			// remove all the white spaces from the line of the file
 			file_line.erase(remove_if(file_line.begin(), file_line.end(), isspace), file_line.end());
-			pos = file_info.find("=");
+			pos = file_line.find(word_delim);
 
 #ifdef DEBUG
-			std::cout << "after removing spaces: " << file_line << endl;
+			std::cout << "after removing spaces: " << file_line << std::endl;
 #endif
 
 			// line should look like this now 'sky=\SE\KE\OHIH\FAST\IH' extract the word
@@ -180,16 +210,20 @@ void insulter::initialize_insults()
 				//extract the word like 'sky'
 				word = file_line.substr(0, pos);
 				// after erasing \SE\KE\OHIH\FAST\IH
-				file_info.erase(0, pos + 1);
+				file_line.erase(0, pos + word_delim.length());
 				// create a null head
 				word_node* head = NULL;
 				// store the head of our pointer in a map
 				word_map[word] = head;
-				make_word_node(file_info, word);
+#ifdef DEBUG
+			std::cout << "word extracted: " << word << std::endl;
+#endif
+
+				make_word_node(file_line, word);
 			}
 			else
 			{
-				printf("line formatted incorrectly\n");
+				std::cout << "line formatted incorrectly: " << file_line << std::endl;
 			}
 		}
 	}
@@ -199,9 +233,42 @@ void insulter::initialize_insults()
 	}
 }
 
-int8_t insulter::get_char(std::string key)
+bool is_number(const std::string& s)
 {
-	return das_map[key];
+    std::string::const_iterator it = s.begin();
+    while (it != s.end() && std::isdigit(*it)) ++it;
+    return !s.empty() && it == s.end();
+}
+
+uint8_t insulter::get_char(std::string key)
+{
+	//now we want to retrieve information...
+	uint8_t rval;
+	if(das_map.find(key) != das_map.end())
+	{
+    	//display information
+    	//std::cout << "entry found in map: " << das_map[key] << std::endl;
+    	
+    	rval = das_map[key];
+    	//std::cout << "entry found in map: " << rval << std::endl;
+
+    	return rval;
+	}	
+	else
+	{
+		if(is_number(key))
+		{
+			//std::cout << "entry is a number converting! " << key << std::endl;
+			return atoi(key.c_str());
+		}
+		else
+		{
+			std::cout << "entry not found in map: " << key << std::endl;
+			assert(das_map.find(key) != das_map.end());
+			return -1;
+		}
+	}
+	
 }
 
 /*
@@ -224,6 +291,9 @@ void insulter::initialize_sentences()
 		while (getline(config_file, file_line))
 		{
 			insults[i] = file_line;
+#ifdef DEBUG
+			std::cout << "insult stored: " << file_line << std::endl;
+#endif
 			i++;
 		}
 	}
@@ -252,7 +322,7 @@ void insulter::initialize_insulter_map()
 	das_map["AW"]    = 136;                   ///< 70ms Voiced Long Vowel
 	das_map["OW"]    = 137;                   ///< 70ms Voiced Long Vowel
 	das_map["UH"]   = 138;                   ///< 70ms Voiced Long Vowel
-	das_map["UW"]   = 139;                   ///< 70ms Voiced Long Vowel
+	das_map["UW"]   = 139;					 ///< 70ms Voiced Long Vowel
 	das_map["MM"]   = 140;                   ///< 70ms Voiced Nasal
 	das_map["NE"]   = 141;                   ///< 70ms Voiced Nasal
 	das_map["NO"]   = 142;                   ///< 70ms Voiced Nasal
@@ -270,7 +340,8 @@ void insulter::initialize_insulter_map()
 	das_map["EYIY"]  = 154;                   ///< 165ms Voiced Diphthong
 	das_map["OHIY"]  = 155;                   ///< 200ms Voiced Diphthong
 	das_map["OWIY"]  = 156;                   ///< 225ms Voiced Diphthong
-	das_map["OHIH"]  = 158;                   ///< 170ms Voiced Diphthong
+	das_map["OHIH"]  = 157;                   ///< 170ms Voiced Diphthong
+	das_map["IYEH"]  = 158;                   ///< 140ms Voiced Diphthong
 	das_map["EHLE"]  = 159;                   ///< 140ms Voiced Diphthong
 	das_map["IYUW"]  = 160;                   ///< 180ms Voiced Diphthong
 	das_map["AXUW"]  = 161;                   ///< 170ms Voiced Diphthong
@@ -397,22 +468,31 @@ void insulter::initialize_insulter_map()
 	das_map["GOTOPHRASE"]    = 29;                    ///< Next octet is EEPROM phgrase to go to. See manual.
 	das_map["DEKAY"]         = 30;                    ///< Next octet is delay in multiples of 10ms. 0 to 255.
 	das_map["RESET"] = 31; ///< Reset Volume Speed, Pitch, Bend to defaults.
+	
+// 	// needed for some assertions
+// 	das_map["3"] = 3;
+// 	das_map["4"] = 4;
+// 	das_map["120"] = 120;
+// das_map["10"] = 10;
+// das_map["114"] = 3;
+// das_map["3"] = 3;
+// das_map["3"] = 3;
 
 }
 
 
 void insulter::initialize_serial() {
 
-	int uart_fd = open("/dev/serial0", O_RDWR | O_NOCTTY );
+	uart_fd = open("/dev/serial0", O_RDWR | O_NOCTTY );
 	if (uart_fd == -1) {
 		printf ("Error no is : %d\n", errno);
 		printf("Error description is : %s\n", strerror(errno));
-		return (-1);
+		//return (-1);
 	}
 
 	// set serial fd to 8n1 9600
 	struct termios options;
-	tcgetattr(sfd, &options);
+	tcgetattr(uart_fd, &options);
 	cfsetspeed(&options, B9600);
 
 	options.c_cflag &= ~CSTOPB;
@@ -420,7 +500,7 @@ void insulter::initialize_serial() {
 	options.c_cflag |= CREAD;
 
 	cfmakeraw(&options);
-	tcsetattr(sfd, TCSANOW, &options);
+	tcsetattr(uart_fd, TCSANOW, &options);
 
 
 }

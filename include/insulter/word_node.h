@@ -1,11 +1,11 @@
 #ifndef WORD_NODE
 #define WORD_NODE
 
-#include <stdint> 
+#include <stdint.h> 
 
-typdef struct word_node{
-	int8_t byte;
-	word_node* next;
+typedef struct word_node_struct{
+	uint8_t byte;
+	word_node_struct* next;
 }word_node;
 
 #endif

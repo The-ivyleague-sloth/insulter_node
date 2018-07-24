@@ -7,9 +7,9 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include <sstream>
-#include "insulter/file_parser.h"
-#include "insulter/word_node.h"
-#include <wiringPi.h> // Include WiringPi library!
+#include "insulter/insulter_node.h"
+// #include "insulter/word_node.h"
+//#include <wiringPi.h> // Include WiringPi library!
 
 #define MONITOR_PIN 7
 
@@ -29,8 +29,13 @@ int main(int argc, char **argv)
   * part of the ROS system.
   */
   std::cout << "yo " << std::endl;
-  initialize_map();
-  initialize_insults();
+  insulter bully_bot;
+
+  bully_bot.initialize_insulter_map();
+  bully_bot.initialize_insults();
+  bully_bot.initialize_sentences();
+  bully_bot.say_sentence();
+
   ros::init(argc, argv, "insulter");
   /**
   * NodeHandle is the main access point to communications with the ROS system.
@@ -63,9 +68,10 @@ int main(int argc, char **argv)
   * a unique string for each message.
   */
   int count = 0;
-  wiringPiSetupGpio(); // Initialize wiringPi -- using Broadcom pin numbers
+  // bully_bot.say_sentence();
+ // wiringPiSetupGpio(); // Initialize wiringPi -- using Broadcom pin numbers
 
-  pinMode(MONITOR_PIN, Input);
+ // pinMode(MONITOR_PIN, Input);
   // pullupDnControl(MONITOR_PIN, PUD)
 
   while (ros::ok())
