@@ -40,6 +40,7 @@ public:
 	void sleep_ms(int milliseconds);
 	void initialize_serial();
 	void free_word(word_node* word);
+	void test_serial();
 
 
 private:

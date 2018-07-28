@@ -1,7 +1,8 @@
 #include "insulter/insulter_node.h"
 #include <assert.h>
+#include <wiringPi.h> // Include WiringPi library!
 
-#define DEBUG
+#define DEBUG1
 
 //https://learn.sparkfun.com/tutorials/raspberry-gpio/c-wiringpi-setup
 // uint8_t check_pin(int8_t pin)
@@ -15,17 +16,22 @@
 // }
 
 //empty constructor
-insulter::insulter(){}
+insulter::insulter()
+{
+
+
+
+}
 
 //empty destructor
 insulter::~insulter(){
-	std::cout << "entering destructor: " << std::endl;
+	//std::cout << "entering destructor: " << std::endl;
 	std::map<std::string, word_node*>::iterator it;
 
 	word_node* head = NULL;
 	for (it=word_map.begin(); it!=word_map.end(); ++it)
 	{
-		std::cout << "freeing: " << it->first << std::endl;
+	//	std::cout << "freeing: " << it->first << std::endl;
 		free_word(it->second);
 	}
 
@@ -65,6 +71,14 @@ void insulter::sleep_ms(int milliseconds) // cross-platform sleep function
 // #endif
 }
 
+uint32_t check_pin(uint32_t pin)
+{
+		uint32_t rval =-1;
+		rval = digitalRead(pin);
+		printf("rval %d\n",rval);
+		return rval;
+}
+
 /*
 * iterates through the linked list of bytes and transmits commands via uart to the speakjet
 */
@@ -73,13 +87,16 @@ int16_t insulter::speak_word(word_node* head)
 
 	word_node* temp = head;
 	while (temp != NULL) {
+		// check to see if the speakjet is ready
+		while(!check_pin(0)); //wait for rdy signal
 		// write a byte to uart lines.
-		//write(uart_fd, &temp->byte, 1);
-#ifdef DEBUG
+
+		write(uart_fd, &temp->byte, 1);
+#ifdef DEBUG1
 		printf("processing through UART %d\n",temp->byte);
 #endif
 		temp = temp->next;
-		sleep_ms(200);
+//	sleep_ms(200);
 		//check gpio pin
 	}
 
@@ -102,7 +119,7 @@ int16_t insulter::say_sentence()
 	std::string insult;
 	// get a random insult from our insult table
 	insult = insults[1];
-#ifdef DEBUG
+#ifdef DEBUG1
 		std::cout << "insult generated: " << insult << std::endl;
 #endif
 
@@ -115,7 +132,7 @@ int16_t insulter::say_sentence()
 		// get rid of the character to iterate
 		insult.erase(0, pos + space.length());
 
-#ifdef DEBUG
+#ifdef DEBUG1
 		std::cout << "word about to speak: " << word << std::endl;
 #endif
 		// look up in map and get the value
@@ -124,7 +141,7 @@ int16_t insulter::say_sentence()
 		speak_word(head);
 	}
 	// after parsing we still need to say the last word
-#ifdef DEBUG
+#ifdef DEBUG1
 		std::cout << "last word about to speak: " << insult << std::endl;
 #endif
 		// look up in map and get the value
@@ -217,7 +234,8 @@ void insulter::initialize_insults()
 	int16_t pos;
 	std::ifstream config_file;
 	std::string file_line;
-	std::string file = "/home/ivyleaguesloth/BullyBot/catkin_ws/src/insulter/src/PhraseALator.Dic";
+	// this needs to be custom until I can learn cmake or make or something or be smart...
+	std::string file = "/home/pi/BullyBot/catkin_ws/src/insulter_node/src/PhraseALator.Dic";
 	std::string word;
 	std::string word_delim = "=";
 	// open the file as input only
@@ -313,7 +331,7 @@ void insulter::initialize_sentences()
 	uint8_t i;
 	std::ifstream config_file;
 	std::string file_line;
-	std::string file = "/home/ivyleaguesloth/BullyBot/catkin_ws/src/insulter/src/Sentences.txt";
+	std::string file = "/home/pi/BullyBot/catkin_ws/src/insulter_node/src/Sentences.txt";
 	std::string word;
 	// open the file as input only
 	config_file.open(file.c_str(), std::ios::in);
@@ -515,13 +533,14 @@ void insulter::initialize_insulter_map()
 
 
 void insulter::initialize_serial() {
-
-	uart_fd = open("/dev/serial0", O_RDWR | O_NOCTTY );
+	uart_fd = -1;
+	uart_fd = open("/dev/ttyAMA0", O_RDWR | O_NOCTTY );
 	if (uart_fd == -1) {
 		printf ("Error no is : %d\n", errno);
 		printf("Error description is : %s\n", strerror(errno));
 		//return (-1);
 	}
+	printf("uartfd %d\n",uart_fd);
 
 	// set serial fd to 8n1 9600
 	struct termios options;
@@ -534,6 +553,55 @@ void insulter::initialize_serial() {
 
 	cfmakeraw(&options);
 	tcsetattr(uart_fd, TCSANOW, &options);
+	printf("uartfd %d\n",uart_fd);
+}
 
+void insulter::test_serial()
+{
+//----- TX BYTES -----
+	unsigned char tx_buffer[20];
+	unsigned char *p_tx_buffer;
+	int count = -1;
+	p_tx_buffer = &tx_buffer[0];
+	*p_tx_buffer++ = 'H';
+	*p_tx_buffer++ = 'e';
+	*p_tx_buffer++ = 'l';
+	*p_tx_buffer++ = 'l';
+	*p_tx_buffer++ = 'o';
+	
+	//if (uart_fd != -1)
+	//{
+		count = write(uart_fd, &tx_buffer[0], 5);		//Filestream, bytes to write, number of bytes to write
+		if (count < 0)
+		{
+			printf("UART TX error\n");
+		}
+	// }
+		printf("UART write %d\n",count);
+		perror("uart write");
 
+	//----- CHECK FOR ANY RX BYTES -----
+	//if (uart_fd != -1)
+	//{
+		// Read up to 255 characters from the port if they are there
+		unsigned char rx_buffer[256];
+		int rx_length = read(uart_fd, &rx_buffer[0], 255);		//Filestream, buffer to store in, number of bytes to read (max)
+		if (rx_length < 0)
+		{
+			//An error occured (will occur if there are no bytes)
+			perror("uart read");
+		}
+		else if (rx_length == 0)
+		{
+			//No data waiting
+			perror("uart == 0");
+		}
+		else
+		{
+			//Bytes received
+			rx_buffer[rx_length] = '\0';
+			printf("%i bytes read : %s\n", rx_length, rx_buffer);
+		}
+	//}
+	close(uart_fd);
 }

@@ -10,14 +10,14 @@
 #include "insulter/insulter_node.h"
 #include <signal.h>
 // #include "insulter/word_node.h"
-//#include <wiringPi.h> // Include WiringPi library!
+#include <wiringPi.h> // Include WiringPi library!
 
 #define MONITOR_PIN 7
+#define RDYPIN 0
 
-  insulter bully_bot;
+insulter bully_bot;
 
 void my_handler(int signo){
-  std::cout << "entering handler: " << std::endl;
   bully_bot.~insulter();
   exit(0);
 }
@@ -34,17 +34,26 @@ int main(int argc, char **argv)
   * For programmatic remappings you can use a different version of init() which takes
   * remappings directly, but for most command-line programs, passing argc and argv is
   * the easiest way to do it.  The third argument to init() is the name of the node.
-  *
+ 
+
   * You must call one of the versions of ros::init() before using any other
   * part of the ROS system.
   */
   std::cout << "yo " << std::endl;
   // insulter bully_bot;
 
+  
   bully_bot.initialize_insulter_map();
   bully_bot.initialize_insults();
   bully_bot.initialize_sentences();
+  wiringPiSetup ();
+
+  pinMode (RDYPIN, INPUT) ;
+
+  bully_bot.initialize_serial();
+  // bully_bot.test_serial();
   bully_bot.say_sentence();
+
   signal(SIGINT, my_handler);
 
   ros::init(argc, argv, "insulter");
