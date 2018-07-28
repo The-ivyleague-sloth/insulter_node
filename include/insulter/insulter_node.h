@@ -20,7 +20,7 @@
 #include <sstream>
 #include "word_node.h"
 //packaging insulter node
-#define INSULTS 2
+#define INSULTS 4
 
 class insulter {
 

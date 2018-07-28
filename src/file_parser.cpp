@@ -28,7 +28,6 @@ insulter::~insulter(){
 	//std::cout << "entering destructor: " << std::endl;
 	std::map<std::string, word_node*>::iterator it;
 
-	word_node* head = NULL;
 	for (it=word_map.begin(); it!=word_map.end(); ++it)
 	{
 	//	std::cout << "freeing: " << it->first << std::endl;
@@ -73,10 +72,7 @@ void insulter::sleep_ms(int milliseconds) // cross-platform sleep function
 
 uint32_t check_pin(uint32_t pin)
 {
-		uint32_t rval =-1;
-		rval = digitalRead(pin);
-		printf("rval %d\n",rval);
-		return rval;
+	return digitalRead(pin);
 }
 
 /*
@@ -236,6 +232,7 @@ void insulter::initialize_insults()
 	std::string file_line;
 	// this needs to be custom until I can learn cmake or make or something or be smart...
 	std::string file = "/home/pi/BullyBot/catkin_ws/src/insulter_node/src/PhraseALator.Dic";
+	// std::string file = "/home/ivyleaguesloth/BullyBot/catkin_ws/src/insulter/src/PhraseALator.Dic";
 	std::string word;
 	std::string word_delim = "=";
 	// open the file as input only
@@ -332,6 +329,7 @@ void insulter::initialize_sentences()
 	std::ifstream config_file;
 	std::string file_line;
 	std::string file = "/home/pi/BullyBot/catkin_ws/src/insulter_node/src/Sentences.txt";
+	// std::string file = "/home/ivyleaguesloth/BullyBot/catkin_ws/src/insulter/src/Sentences.txt";
 	std::string word;
 	// open the file as input only
 	config_file.open(file.c_str(), std::ios::in);
