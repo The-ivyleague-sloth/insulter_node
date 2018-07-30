@@ -3,17 +3,7 @@
 #include <wiringPi.h> // Include WiringPi library!
 
 #define DEBUG1
-
-//https://learn.sparkfun.com/tutorials/raspberry-gpio/c-wiringpi-setup
-// uint8_t check_pin(int8_t pin)
-// {
-// 	if (digitalRead(pin)) // sensor tripped
-// 	{
-// 		return 1;
-// 	}
-// 	else
-// 		return 0;
-// }
+// #define DEBUG
 
 //empty constructor
 insulter::insulter()
@@ -24,8 +14,9 @@ insulter::insulter()
 }
 
 //empty destructor
+// when our destructor is called free the entire word map that was created 
 insulter::~insulter(){
-	//std::cout << "entering destructor: " << std::endl;
+	//std::cout << " destructor: " << std::endl;
 	std::map<std::string, word_node*>::iterator it;
 
 	for (it=word_map.begin(); it!=word_map.end(); ++it)
@@ -36,6 +27,11 @@ insulter::~insulter(){
 
 }
 
+/*
+* given the head of the linked list free the entire list
+* givem the enunciations of the word free up everything
+* example a = /EYIY /IY free up /EYIY and /IY 
+*/
 void insulter::free_word(word_node* head)
 {
 	word_node* temp;
@@ -57,17 +53,13 @@ void insulter::free_word(word_node* head)
 
 }
 
-
-void insulter::sleep_ms(int milliseconds) // cross-platform sleep function
+// sleep for some period of time
+void sleep_ms(int milliseconds) // cross-platform sleep function
 {
-// #elif _POSIX_C_SOURCE >= 199309L
 	struct timespec ts;
 	ts.tv_sec = milliseconds / 1000;
 	ts.tv_nsec = (milliseconds % 1000) * 1000000;
 	nanosleep(&ts, NULL);
-// #else
-	// usleep(milliseconds * 1000);
-// #endif
 }
 
 uint32_t check_pin(uint32_t pin)
@@ -82,42 +74,35 @@ int16_t insulter::speak_word(word_node* head)
 {
 
 	word_node* temp = head;
-	while (temp != NULL) {
+	while (temp != NULL) 
+	{
 		// check to see if the speakjet is ready
 		while(!check_pin(0)); //wait for rdy signal
 		// write a byte to uart lines.
-
 		write(uart_fd, &temp->byte, 1);
 #ifdef DEBUG1
 		printf("processing through UART %d\n",temp->byte);
 #endif
 		temp = temp->next;
-//	sleep_ms(200);
-		//check gpio pin
 	}
 
 
 }
 
 /*
-* gets a string sentence and breaks the sentence down into words to enunciate
+* gets a string sentence and breaks the sentence down into words to enunciate and transmits via uart
 */
 int16_t insulter::say_sentence()
 {
-	//get random number based off of size
-	// int ind = rand() % INSULTS;
 	int pos;
-	// std::string end_pos;
 	std::string space = " ";
 	std::string word;
 	word_node* head = NULL;
 
 	std::string insult;
 	// get a random insult from our insult table
+	insult = insults.at((rand()%insults.size()));
 
-	// srand(time(NULL));   // should only be called once
-
-	insult = insults[(rand()%4)];
 #ifdef DEBUG1
 		std::cout << "insult generated: " << insult << std::endl;
 #endif
@@ -125,8 +110,7 @@ int16_t insulter::say_sentence()
 	// string should be like 'you suck' so we parse by space
 	while ((pos = insult.find(space)) != std::string::npos)
 	{
-		// end_pos = line.find(space,1);
-		//get our character string to look up in the map
+		//get our character string to look up in the map so word is now "you"
 		word = insult.substr(0, pos);
 		// get rid of the character to iterate
 		insult.erase(0, pos + space.length());
@@ -134,12 +118,12 @@ int16_t insulter::say_sentence()
 #ifdef DEBUG1
 		std::cout << "word about to speak: " << word << std::endl;
 #endif
-		// look up in map and get the value
+		// look up the word in the map and get the value
 		head = word_map[word];
-		// send the head of the list to iterate through and output hte bytes
+		// send the head of the list to iterate through and output the bytes
 		speak_word(head);
 	}
-	// after parsing we still need to say the last word
+	// after parsing we still need to say the last word in this example "suck"
 #ifdef DEBUG1
 		std::cout << "last word about to speak: " << insult << std::endl;
 #endif
@@ -153,11 +137,12 @@ int16_t insulter::say_sentence()
 // create a new word node if head is null add to front else iterate through and add to tail
 int16_t insulter::create_new_word_node(std::string word, int8_t val) {
 	word_node* head;
-	// get the head of our linked list
+	// get the head of our linked list from our map
 	head = word_map[word];
 
 	word_node* new_word_node = (word_node*) malloc (sizeof(word_node));
-	if (new_word_node == NULL) { // == -1
+	if (new_word_node == NULL) 
+	{ // == -1
 		/* return -1 if malloc fails */
 		perror("error, malloc for new word node node struct failed");
 		return -1;
@@ -170,7 +155,7 @@ int16_t insulter::create_new_word_node(std::string word, int8_t val) {
 	if ((head) == NULL)
 	{
 		/* if head == NULL, node created is the new head of the list! */
-		//head = new_word_node;
+		// if the head was null store the newly created node in the map as the head
 		word_map[word] = new_word_node;
 	}
 	else
@@ -189,7 +174,7 @@ int16_t insulter::create_new_word_node(std::string word, int8_t val) {
 	return 0;
 }
 
-// take in a line from the file parse command by command and form our linked list
+// take in a line from the file parse command by command and form our linked list of bytes to enunciate the word
 void insulter::make_word_node(std::string line, std::string word) {
 
 	int16_t start_pos;
@@ -199,7 +184,7 @@ void insulter::make_word_node(std::string line, std::string word) {
 	std::string character;
 	uint8_t val;
 
-	// string should be here \SE\KE\OHIH\FAST\IH find the first \ and last \ and gather
+	// string line should be here \SE\KE\OHIH\FAST\IH find the first \ and last \ and gather
 	while ((start_pos = line.find(token)) != std::string::npos)
 	{
 		end_pos = line.find(token, 1);
@@ -249,6 +234,7 @@ void insulter::initialize_insults()
 			//typical line looks like sky = \SE \KE \OHIH \FAST \IH
 			// remove all the white spaces from the line of the file
 			file_line.erase(remove_if(file_line.begin(), file_line.end(), isspace), file_line.end());
+			// Check for the "=" to denote the word
 			pos = file_line.find(word_delim);
 
 #ifdef DEBUG
@@ -264,7 +250,7 @@ void insulter::initialize_insults()
 				file_line.erase(0, pos + word_delim.length());
 				// create a null head
 				word_node* head = NULL;
-				// store the head of our pointer in a map
+				// store the head of our pointer in a map for easy retrieval
 				word_map[word] = head;
 #ifdef DEBUG
 			std::cout << "word extracted: " << word << std::endl;
@@ -272,6 +258,7 @@ void insulter::initialize_insults()
 
 				make_word_node(file_line, word);
 			}
+			// if there is no "=" discard the line
 			else
 			{
 				std::cout << "line formatted incorrectly: " << file_line << std::endl;
@@ -280,10 +267,13 @@ void insulter::initialize_insults()
 	}
 	else
 	{
-		printf("error opening file\n");
+		printf("error opening dictionary file\n");
 	}
 }
 
+/*
+* checks if the string passed in is a number
+*/
 bool is_number(const std::string& s)
 {
     std::string::const_iterator it = s.begin();
@@ -291,27 +281,26 @@ bool is_number(const std::string& s)
     return !s.empty() && it == s.end();
 }
 
+/*
+* pass in a string and get the corresponding char from the map created from "initialize insulter map"
+*/
 uint8_t insulter::get_char(std::string key)
 {
-	//now we want to retrieve information...
-	uint8_t rval;
+	//if we have the key then return the char
 	if(das_map.find(key) != das_map.end())
-	{
-    	//display information
-    	//std::cout << "entry found in map: " << das_map[key] << std::endl;
-    	
-    	rval = das_map[key];
-    	//std::cout << "entry found in map: " << rval << std::endl;
-
-    	return rval;
+	{ 	
+    	return das_map[key];
 	}	
+	// key is not found lets check to see if the key is a number
+	// numbers are used to set delays and speeds for speakjet
 	else
-	{
+	{	
+		// the key is a number return the numberas an int
 		if(is_number(key))
 		{
-			//std::cout << "entry is a number converting! " << key << std::endl;
 			return atoi(key.c_str());
 		}
+		// the key is unknown throw an assertion for developer to fix
 		else
 		{
 			std::cout << "entry not found in map: " << key << std::endl;
@@ -327,8 +316,6 @@ uint8_t insulter::get_char(std::string key)
 */
 void insulter::initialize_sentences()
 {
-
-	uint8_t i;
 	std::ifstream config_file;
 	std::string file_line;
 	std::string file = "/home/pi/BullyBot/catkin_ws/src/insulter_node/src/Sentences.txt";
@@ -342,11 +329,10 @@ void insulter::initialize_sentences()
 		// read line by line and store the line read into a string array
 		while (getline(config_file, file_line))
 		{
-			insults[i] = file_line;
+			insults.push_back(file_line);
 #ifdef DEBUG
 			std::cout << "insult stored: " << file_line << std::endl;
 #endif
-			i++;
 		}
 	}
 	else
@@ -520,19 +506,12 @@ void insulter::initialize_insulter_map()
 	das_map["GOTOPHRASE"]    = 29;                    ///< Next octet is EEPROM phgrase to go to. See manual.
 	das_map["DEKAY"]         = 30;                    ///< Next octet is delay in multiples of 10ms. 0 to 255.
 	das_map["RESET"] = 31; ///< Reset Volume Speed, Pitch, Bend to defaults.
-	
-// 	// needed for some assertions
-// 	das_map["3"] = 3;
-// 	das_map["4"] = 4;
-// 	das_map["120"] = 120;
-// das_map["10"] = 10;
-// das_map["114"] = 3;
-// das_map["3"] = 3;
-// das_map["3"] = 3;
-
 }
 
-
+/*
+* opens and configures the serial port GPIO pins to 9600 baud  
+*
+*/ 
 void insulter::initialize_serial() {
 	uart_fd = -1;
 	uart_fd = open("/dev/ttyAMA0", O_RDWR | O_NOCTTY );
@@ -555,6 +534,10 @@ void insulter::initialize_serial() {
 	tcsetattr(uart_fd, TCSANOW, &options);
 }
 
+/*
+*  a simple tx and rx to ensure the uart is working
+* connect tx to rx pins to each other.
+*/
 void insulter::test_serial()
 {
 //----- TX BYTES -----
@@ -568,23 +551,18 @@ void insulter::test_serial()
 	*p_tx_buffer++ = 'l';
 	*p_tx_buffer++ = 'o';
 	
-	//if (uart_fd != -1)
-	//{
 		count = write(uart_fd, &tx_buffer[0], 5);		//Filestream, bytes to write, number of bytes to write
 		if (count < 0)
 		{
 			printf("UART TX error\n");
 		}
-	// }
 		printf("UART write %d\n",count);
 		perror("uart write");
 
 	//----- CHECK FOR ANY RX BYTES -----
-	//if (uart_fd != -1)
-	//{
-		// Read up to 255 characters from the port if they are there
-		unsigned char rx_buffer[256];
-		int rx_length = read(uart_fd, &rx_buffer[0], 255);		//Filestream, buffer to store in, number of bytes to read (max)
+	// Read up to 255 characters from the port if they are there
+	unsigned char rx_buffer[256];
+	int rx_length = read(uart_fd, &rx_buffer[0], 255);		//Filestream, buffer to store in, number of bytes to read (max)
 		if (rx_length < 0)
 		{
 			//An error occured (will occur if there are no bytes)
@@ -601,6 +579,5 @@ void insulter::test_serial()
 			rx_buffer[rx_length] = '\0';
 			printf("%i bytes read : %s\n", rx_length, rx_buffer);
 		}
-	//}
 	close(uart_fd);
 }
