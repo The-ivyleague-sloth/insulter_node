@@ -39,7 +39,6 @@ void insulter::free_word(word_node* head)
 	if(head == NULL)
 	{
 		std::cout << "nothing to free " << std::endl;
-		assert(head == NULL);
 	} 
 
 	temp = head;
@@ -77,7 +76,10 @@ int16_t insulter::speak_word(word_node* head)
 	while (temp != NULL) 
 	{
 		// check to see if the speakjet is ready
-		while(!check_pin(0)); //wait for rdy signal
+		while(!check_pin(0))
+		{
+			sleep_ms(300);// do nothing while high?
+		} //wait for rdy signal
 		// write a byte to uart lines.
 		write(uart_fd, &temp->byte, 1);
 #ifdef DEBUG1

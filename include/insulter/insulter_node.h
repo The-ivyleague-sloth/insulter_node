@@ -11,6 +11,7 @@
 #include <string>
 #include <string.h>
 #include <map>
+#include <vector>
 #include <errno.h>
 #include <time.h>
 #include <stdint.h>
