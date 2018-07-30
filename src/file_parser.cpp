@@ -114,7 +114,10 @@ int16_t insulter::say_sentence()
 
 	std::string insult;
 	// get a random insult from our insult table
-	insult = insults[1];
+
+	// srand(time(NULL));   // should only be called once
+
+	insult = insults[(rand()%4)];
 #ifdef DEBUG1
 		std::cout << "insult generated: " << insult << std::endl;
 #endif
@@ -538,7 +541,6 @@ void insulter::initialize_serial() {
 		printf("Error description is : %s\n", strerror(errno));
 		//return (-1);
 	}
-	printf("uartfd %d\n",uart_fd);
 
 	// set serial fd to 8n1 9600
 	struct termios options;
@@ -551,7 +553,6 @@ void insulter::initialize_serial() {
 
 	cfmakeraw(&options);
 	tcsetattr(uart_fd, TCSANOW, &options);
-	printf("uartfd %d\n",uart_fd);
 }
 
 void insulter::test_serial()

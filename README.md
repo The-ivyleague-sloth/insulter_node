@@ -11,6 +11,9 @@ words are linked lists hashmasps store the head
  the bytes to send via uart are bytes sending the hashmap values to convert the strings to an int
  EH -> 232
 
+#High Level overview
+upon bootup the insulter object reads in the dictionary file to create the enunciations of words
+the sentences.txt file is read in and these are the sentences the insulter can speak when a message is received.
 
 to run the user must have I/O privileges. one can access the I/O with this command
 sudo usermod -a -G dialout $USER
