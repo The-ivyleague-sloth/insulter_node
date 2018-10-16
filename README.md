@@ -1,4 +1,4 @@
-#packaging insulter node
+# packaging insulter node
 instructions for setting up a package
 https://w3.cs.jmu.edu/spragunr/CS354_F17/labs/packaging/package_lab.shtml
 
@@ -8,7 +8,7 @@ words are linked lists hashmasps store the head
  the bytes to send via uart are bytes sending the hashmap values to convert the strings to an int
  EH -> 232
 
-#High Level overview
+# High Level overview
 upon bootup the insulter object reads in the dictionary file to create the enunciations of words.
 
 the stirng to char for the enunciations are stored in a map. These must be maintained and updated by the programmer. If new enunciations are found then the developer must update accordingly.
@@ -29,12 +29,12 @@ start_x=1
 gpu_mem=128
 enable_uart=1
 
-#to make
+# to make
  add the node into an existing catkin_ws/src space then run catkin_make from catkin_ws dir.
  this should build the node. you then can run the node and one insult will be generated. Other insults are generated when a callback is registered. To register callbacks one can use the "monitor node" found on my github. This node publishes messages that the insulter is subscribing to.
 
- #sentences.txt
+ # sentences.txt
  This file is where you can add your new insults the node will read this file on boot up. 
  
-PhraseALator.Dic
+# PhraseALator.Dic
 This file is where all the words are stored and how to enunciate them. to add a new word simply put the name of the word followed by an "=" and then a string of known enunucaiations. If there are any mistakes in the enunciations then the node will throw an assertion.
