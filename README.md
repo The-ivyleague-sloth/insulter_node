@@ -1,3 +1,6 @@
+![alt text](https://github.com/The-ivyleague-sloth/Insulter/blob/master/pictures/bender.png)
+
+
 # packaging insulter node
 instructions for setting up a package
 https://w3.cs.jmu.edu/spragunr/CS354_F17/labs/packaging/package_lab.shtml
@@ -33,7 +36,7 @@ enable_uart=1
  add the node into an existing catkin_ws/src space then run catkin_make from catkin_ws dir.
  this should build the node. you then can run the node and one insult will be generated. Other insults are generated when a callback is registered. To register callbacks one can use the "monitor node" found on my github. This node publishes messages that the insulter is subscribing to.
 
- # sentences.txt
+# sentences.txt
  This file is where you can add your new insults the node will read this file on boot up. 
  
 # PhraseALator.Dic
