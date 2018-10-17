@@ -1,4 +1,4 @@
-![alt text](https://github.com/The-ivyleague-sloth/Insulter/blob/master/pictures/bender.png)
+![alt text](https://github.com/The-ivyleague-sloth/insulter_node/blob/master/pictures/bender.png)
 
 
 # packaging insulter node
